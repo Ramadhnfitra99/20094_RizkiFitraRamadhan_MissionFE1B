@@ -9,7 +9,8 @@ export type SavedMovie = {
   badge?: "new" | "top" | "premium" | null;
 };
 
-const VIEWER_KEY = "chill-viewer-id";
+const STORAGE_KEY = "chill-my-list-v1";
+const STORAGE_EVENT = "chill:my-list-changed";
 
 export function movieId(title: string) {
   return title
@@ -20,27 +21,51 @@ export function movieId(title: string) {
     .replace(/^-|-$/g, "");
 }
 
-function viewerId() {
-  let id = window.localStorage.getItem(VIEWER_KEY);
-  if (!id) {
-    id = crypto.randomUUID();
-    window.localStorage.setItem(VIEWER_KEY, id);
-  }
-  return id;
+function isSavedMovie(value: unknown): value is SavedMovie {
+  if (!value || typeof value !== "object") return false;
+
+  const movie = value as Partial<SavedMovie>;
+  return (
+    typeof movie.id === "string" &&
+    movie.id.length > 0 &&
+    typeof movie.title === "string" &&
+    movie.title.length > 0 &&
+    typeof movie.image === "string" &&
+    movie.image.length > 0 &&
+    (movie.badge === undefined ||
+      movie.badge === null ||
+      movie.badge === "new" ||
+      movie.badge === "top" ||
+      movie.badge === "premium")
+  );
 }
 
-async function requestMyList(init?: RequestInit) {
-  const response = await fetch("/api/my-list", {
-    ...init,
-    headers: {
-      "content-type": "application/json",
-      "x-chill-viewer-id": viewerId(),
-      ...init?.headers,
-    },
+function readMyList() {
+  const stored = window.localStorage.getItem(STORAGE_KEY);
+  if (!stored) return [];
+
+  const parsed: unknown = JSON.parse(stored);
+  if (!Array.isArray(parsed)) return [];
+
+  const uniqueMovies = new Map<string, SavedMovie>();
+  parsed.filter(isSavedMovie).forEach((movie) => {
+    if (!uniqueMovies.has(movie.id)) uniqueMovies.set(movie.id, movie);
   });
-  const data = (await response.json()) as { movies?: SavedMovie[]; error?: string };
-  if (!response.ok) throw new Error(data.error ?? "Daftar Saya belum dapat diperbarui.");
-  return data;
+  return Array.from(uniqueMovies.values());
+}
+
+function writeMyList(movies: SavedMovie[]) {
+  window.localStorage.setItem(STORAGE_KEY, JSON.stringify(movies));
+  window.dispatchEvent(
+    new CustomEvent<SavedMovie[]>(STORAGE_EVENT, { detail: movies }),
+  );
+}
+
+function storageError(reason: unknown) {
+  if (reason instanceof Error && reason.name === "QuotaExceededError") {
+    return "Penyimpanan browser penuh. Hapus sebagian Daftar Saya lalu coba lagi.";
+  }
+  return "Daftar Saya belum dapat disimpan di browser ini.";
 }
 
 export function useMyList() {
@@ -51,37 +76,40 @@ export function useMyList() {
 
   const refresh = useCallback(async () => {
     try {
-      const data = await requestMyList();
-      setItems(data.movies ?? []);
+      setItems(readMyList());
       setError("");
     } catch (reason) {
-      setError(reason instanceof Error ? reason.message : "Daftar Saya belum dapat dimuat.");
+      setError(storageError(reason));
     } finally {
       setReady(true);
     }
   }, []);
 
   useEffect(() => {
-    let cancelled = false;
+    let active = true;
+    queueMicrotask(() => {
+      if (active) void refresh();
+    });
 
-    void requestMyList()
-      .then((data) => {
-        if (cancelled) return;
-        setItems(data.movies ?? []);
-        setError("");
-      })
-      .catch((reason: unknown) => {
-        if (cancelled) return;
-        setError(reason instanceof Error ? reason.message : "Daftar Saya belum dapat dimuat.");
-      })
-      .finally(() => {
-        if (!cancelled) setReady(true);
-      });
+    const handleStorage = (event: StorageEvent) => {
+      if (event.key === STORAGE_KEY) void refresh();
+    };
+    const handleLocalChange = (event: Event) => {
+      const movies = (event as CustomEvent<SavedMovie[]>).detail;
+      setItems(movies);
+      setError("");
+      setReady(true);
+    };
+
+    window.addEventListener("storage", handleStorage);
+    window.addEventListener(STORAGE_EVENT, handleLocalChange);
 
     return () => {
-      cancelled = true;
+      active = false;
+      window.removeEventListener("storage", handleStorage);
+      window.removeEventListener(STORAGE_EVENT, handleLocalChange);
     };
-  }, []);
+  }, [refresh]);
 
   const savedIds = useMemo(() => new Set(items.map((item) => item.id)), [items]);
 
@@ -94,29 +122,18 @@ export function useMyList() {
     setError("");
 
     try {
-      if (currentlySaved) {
-        const response = await fetch(`/api/my-list?id=${encodeURIComponent(id)}`, {
-          method: "DELETE",
-          headers: { "x-chill-viewer-id": viewerId() },
-        });
-        if (!response.ok) {
-          const data = (await response.json()) as { error?: string };
-          throw new Error(data.error ?? "Film belum dapat dihapus.");
-        }
-        setItems((current) => current.filter((item) => item.id !== id));
-      } else {
-        await requestMyList({
-          method: "POST",
-          body: JSON.stringify({ ...movie, id }),
-        });
-        setItems((current) => [{ ...movie, id }, ...current]);
-      }
+      const nextItems = currentlySaved
+        ? items.filter((item) => item.id !== id)
+        : [{ ...movie, id }, ...items.filter((item) => item.id !== id)];
+
+      writeMyList(nextItems);
+      setItems(nextItems);
     } catch (reason) {
-      setError(reason instanceof Error ? reason.message : "Daftar Saya belum dapat diperbarui.");
+      setError(storageError(reason));
     } finally {
       setPendingIds((current) => current.filter((pendingId) => pendingId !== id));
     }
-  }, [pendingIds, savedIds]);
+  }, [items, pendingIds, savedIds]);
 
   const remove = useCallback(async (id: string) => {
     const movie = items.find((item) => item.id === id);

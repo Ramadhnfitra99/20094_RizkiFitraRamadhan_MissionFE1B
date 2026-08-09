@@ -113,6 +113,16 @@ test("aset visual utama Chill tersedia", async () => {
   await Promise.all(assets.map((asset) => access(projectFile(asset))));
 });
 
+test("Daftar Saya tersimpan lokal tanpa bergantung pada API Cloudflare", async () => {
+  const myListHook = await source("app/hooks/useMyList.ts");
+
+  assert.match(myListHook, /const STORAGE_KEY = "chill-my-list-v1"/);
+  assert.match(myListHook, /window\.localStorage\.getItem\(STORAGE_KEY\)/);
+  assert.match(myListHook, /window\.localStorage\.setItem\(STORAGE_KEY/);
+  assert.match(myListHook, /window\.addEventListener\("storage"/);
+  assert.doesNotMatch(myListHook, /fetch\(["'`]\/api\/my-list/);
+});
+
 test("build produksi menghasilkan Worker dan aset client", async () => {
   await Promise.all([
     access(projectFile("dist/server/index.js")),

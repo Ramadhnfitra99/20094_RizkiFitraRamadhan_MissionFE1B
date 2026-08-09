@@ -1,0 +1,9 @@
+/* Footer */
+.footer { margin-top: 40px; padding: 58px 0; border-top: 1px solid rgba(255,255,255,.08); background: #101010; }
+.footer__inner { display: grid; grid-template-columns: 1.1fr 2fr .9fr; gap: 60px; }
+.footer__brand p { margin-top: 18px; color: var(--muted); font-size: 13px; }
+.footer-group__button { width: 100%; display: flex; justify-content: space-between; border: 0; background: transparent; color: white; text-align: left; font-weight: 800; }
+.footer-group__chevron { display: none; }
+.footer-links { margin-top: 18px; display: grid; gap: 10px 24px; color: #c9c9c9; font-size: 14px; }
+.footer-links--genres { grid-template-columns: repeat(3, 1fr); }
+.footer-links a:hover { color: var(--primary-bright); }

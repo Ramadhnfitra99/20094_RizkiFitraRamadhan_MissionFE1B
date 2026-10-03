@@ -22,6 +22,9 @@
   .profile-list__grid { grid-template-columns: repeat(4, minmax(0, 1fr)); }
   .plans-grid { gap: 18px; }
   .payment-layout { grid-template-columns: 220px minmax(0, 1fr); gap: 36px; }
+  .movie-crud { padding: 28px; }
+  .movie-crud__workspace { grid-template-columns: 310px minmax(0, 1fr); gap: 20px; }
+  .managed-movie-grid { grid-template-columns: repeat(3, minmax(0, 1fr)); }
 }
 
 @media (max-width: 680px) {
@@ -109,6 +112,14 @@
   .payment-success { padding: 38px 22px; }
   .series-genre { bottom: 265px; }
   .series-genre__menu { width: min(300px, calc(100vw - 32px)); }
+  .movie-crud { margin: 34px 0 25px; padding: 23px 18px; border-radius: 18px; }
+  .movie-crud__header { align-items: flex-start; flex-direction: column; gap: 16px; margin-bottom: 22px; }
+  .movie-crud__stats { width: 100%; }
+  .movie-crud__stats span { flex: 1; }
+  .movie-crud__workspace { grid-template-columns: 1fr; }
+  .movie-crud-form { padding: 19px; }
+  .managed-movie-grid { grid-template-columns: repeat(3, minmax(0, 1fr)); }
+  .managed-movie-card__actions { opacity: 1; transform: none; }
 }
 
 @media (max-width: 480px) {
@@ -145,4 +156,13 @@
   .payment-countdown { padding: 18px 10px; }
   .payment-countdown strong { gap: 5px; font-size: 11px; }
   .payment-countdown strong span { min-width: 42px; padding: 7px; font-size: 17px; }
+  .movie-crud__header h2 { font-size: 25px; }
+  .movie-crud__header p { font-size: 12px; }
+  .movie-crud-form__row { grid-template-columns: 1fr; }
+  .movie-crud-form__actions { align-items: stretch; flex-direction: column; }
+  .movie-crud-toolbar { grid-template-columns: 1fr; }
+  .managed-movie-grid { grid-template-columns: repeat(2, minmax(0, 1fr)); gap: 11px; }
+  .managed-movie-card__body { padding: 9px 9px 11px; }
+  .managed-movie-card__actions { inset: auto 6px 6px; }
+  .managed-movie-card__actions button { min-width: 0; padding-inline: 4px; }
 }

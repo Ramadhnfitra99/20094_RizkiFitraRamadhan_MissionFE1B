@@ -71,6 +71,37 @@ test("home tersusun dari komponen hierarkis dan data katalog terpisah", async ()
   assert.match(mediaData, /export const newReleases/);
 });
 
+test("homepage mengimplementasikan CRUD array object dengan useState dan props", async () => {
+  const [homePage, crudComponent, managedMovies] = await Promise.all([
+    source("app/components/HomePage.tsx"),
+    source("app/components/CustomMoviesCrud.tsx"),
+    source("app/data/managedMovies.ts"),
+  ]);
+
+  assert.match(homePage, /useState<ManagedMovie\[\]>/);
+  assert.match(homePage, /setManagedMovies/);
+  assert.match(homePage, /current\.map/);
+  assert.match(homePage, /current\.filter/);
+  assert.match(homePage, /<CustomMoviesCrud[\s\S]*movies=\{managedMovies\}/);
+  assert.match(homePage, /onCreate=\{createMovie\}/);
+  assert.match(homePage, /onUpdate=\{updateMovie\}/);
+  assert.match(homePage, /onDelete=\{deleteMovie\}/);
+
+  assert.match(crudComponent, /type CustomMoviesCrudProps/);
+  assert.match(crudComponent, /movies\.map/);
+  assert.match(crudComponent, /onCreate\(movie\)/);
+  assert.match(crudComponent, /onUpdate\(editingId, movie\)/);
+  assert.match(crudComponent, /onDelete\(movie\.id\)/);
+  assert.match(crudComponent, /Kelola Koleksi Film/);
+  assert.match(crudComponent, /Pilih poster film/);
+  assert.match(crudComponent, /posterOptions\.map/);
+  assert.match(crudComponent, /aria-pressed=\{selected\}/);
+  assert.match(crudComponent, /onChange\("poster", poster\.value\)/);
+  assert.ok((crudComponent.match(/unoptimized/g) ?? []).length >= 3);
+  assert.match(managedMovies, /initialManagedMovies: ManagedMovie\[\]/);
+  assert.ok((managedMovies.match(/id: "managed-/g) ?? []).length >= 4);
+});
+
 test("stylesheet dipisahkan dan memiliki breakpoint responsive", async () => {
   const [globals, base, auth, home, pages, footer, responsive] = await Promise.all([
     source("app/globals.css"),
@@ -88,12 +119,15 @@ test("stylesheet dipisahkan dan memiliki breakpoint responsive", async () => {
   assert.match(base, /font-family: "Lato"/);
   assert.match(auth, /\.auth-card/);
   assert.match(home, /\.carousel__track/);
+  assert.match(home, /\.movie-crud/);
+  assert.match(home, /\.managed-movie-grid/);
   assert.match(pages, /\.profile-page/);
   assert.match(footer, /\.footer__inner/);
   assert.match(responsive, /@media \(max-width: 900px\)/);
   assert.match(responsive, /@media \(max-width: 680px\)/);
   assert.match(responsive, /@media \(max-width: 480px\)/);
   assert.match(responsive, /\.carousel__arrow[^}]*display: grid/s);
+  assert.match(responsive, /\.movie-crud__workspace/);
 });
 
 test("aset visual utama Chill tersedia", async () => {
